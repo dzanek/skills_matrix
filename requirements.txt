@@ -1,5 +1,5 @@
 streamlit
 pandas
-streamlit_gsheets
+st-gsheets-connection
 numpy
 hmac
