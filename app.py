@@ -60,7 +60,8 @@ def main():
         st.stop()
     
     df = load_data(st.secrets["spreadsheet"])
-
+    with st.expander("Raw data"):
+        st.write(df)
     with st.form(key='mode'):
         axis = st.radio('Please choose mode',['People based search','Skill based search'], index=None)
         skills_rows = df.iloc[:2]
