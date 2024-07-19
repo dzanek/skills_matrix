@@ -9,13 +9,11 @@ def mk_skills_dict(skills_rows):
     skills_dict = {None:[]}
     skills_rows=skills_rows[6:]
     #print(skills_rows)
-    for category, skill in skills_rows.iteritems():
-        category = category.strip()
-        skill = skill.strip()
-        if category in skills_dict:
-            skills_dict[category].append(skill)
-        else:
-            skills_dict[category] = [skill]
+    for i in skills_rows.iterrows():
+        try:
+            skills_dict[i[1][0].strip()].append(i[1][1].strip())
+        except:
+            skills_dict[i[1][0].strip()] = [i[1][1].strip()]
     return skills_dict
 
 def check_password():
