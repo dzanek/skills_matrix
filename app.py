@@ -9,11 +9,13 @@ def mk_skills_dict(skills_rows):
     skills_dict = {None:[]}
     skills_rows=skills_rows[6:]
     #print(skills_rows)
-    for i in skills_rows.iterrows():
-        try:
-            skills_dict[i[1][0].strip()].append(i[1][1].strip())
-        except:
-            skills_dict[i[1][0].strip()] = [i[1][1].strip()]
+    for category, skill in skills_rows.iteritems():
+        category = category.strip()
+        skill = skill.strip()
+        if category in skills_dict:
+            skills_dict[category].append(skill)
+        else:
+            skills_dict[category] = [skill]
     return skills_dict
 
 def check_password():
@@ -49,7 +51,8 @@ def load_data(spreadheet):
     worksheet = spreadsheet.get_worksheet(0)  # or use spreadsheet.worksheet("Sheet Name")
     data = worksheet.get_all_values()
     df = pd.DataFrame([i[1:] for i in data], index=[i[0] for i in data])  # Using the first row as header
-    print(df,'\nasdasdasdadasd\n')   
+    df.index.values[0] = "Categories"
+    df.index.values[1] = "Skills"
     return df 
 
 def main():
@@ -59,8 +62,6 @@ def main():
         st.stop()
     
     df = load_data(st.secrets["spreadsheet"])
-    df.index.values[0] = "Categories"
-    df.index.values[1] = "Skills"
 
     with st.form(key='mode'):
         axis = st.radio('Please choose mode',['People based search','Skill based search'], index=None)
@@ -77,6 +78,7 @@ def main():
             df_cleaned = df_cleaned.T[6:]
             df_cleaned = df_cleaned.style.map(lambda x: f"background-color: {'#C7F6C7' if str(x) in ['3','4','5'] else '#eded82' if str(x)=='2' else 'white'}")
             st.write(df_cleaned)
+
     if axis == 'Skill based search': 
         with st.form(key='skills'):
             skills_df = skills_rows[skills_rows.columns[6:]]
