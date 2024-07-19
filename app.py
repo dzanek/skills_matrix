@@ -1,8 +1,9 @@
 import streamlit as st
-from streamlit_gsheets import GSheetsConnection
 import pandas as pd 
-import numpy as np
 import hmac
+import gspread
+from google.oauth2.service_account import Credentials
+
 
 def mk_skills_dict(skills_rows):
     skills_dict = {None:[]}
@@ -14,6 +15,7 @@ def mk_skills_dict(skills_rows):
         except:
             skills_dict[i[1][0].strip()] = [i[1][1].strip()]
     return skills_dict
+
 def check_password():
     """Returns `True` if the user had the correct password."""
 
@@ -37,7 +39,18 @@ def check_password():
         st.error("😕 Password incorrect")
     return False
 
-
+def load_data(spreadheet):
+    scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+    credentials = Credentials.from_service_account_info(
+        st.secrets["gcp_service_account"],
+        scopes=scope)
+    client = gspread.authorize(credentials)
+    spreadsheet = client.open_by_url(st.secrets["spreadsheet"])
+    worksheet = spreadsheet.get_worksheet(0)  # or use spreadsheet.worksheet("Sheet Name")
+    data = worksheet.get_all_values()
+    df = pd.DataFrame([i[1:] for i in data], index=[i[0] for i in data])  # Using the first row as header
+    print(df,'\nasdasdasdadasd\n')   
+    return df 
 
 def main():
     st.title("Skills Matrix")
@@ -45,20 +58,14 @@ def main():
     if not check_password():
         st.stop()
     
-    conn = st.connection("gsheets", type=GSheetsConnection)
-
-    df = conn.read(spreadheet="People vs Skills", header=None, index_col = 0)
+    df = load_data(st.secrets["spreadsheet"])
     df.index.values[0] = "Categories"
     df.index.values[1] = "Skills"
-    #df.iloc[1][:6]
-    #df = df.iloc
-    #st.write(df)
+
     with st.form(key='mode'):
         axis = st.radio('Please choose mode',['People based search','Skill based search'], index=None)
         skills_rows = df.iloc[:2]
         st.form_submit_button('proceed')
-        #st.write(skills_rows)
-        #st.write(df)
 
 
     if axis == 'People based search':
