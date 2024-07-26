@@ -163,8 +163,8 @@ def highlight_summary_row(s):
 
 def main():
     st.title("People Dashboard")
-    #if not check_password():
-    #    st.stop()
+    if not check_password():
+        st.stop()
     df_skills = load_skills_data(st.secrets["spreadsheet_skills"], "People vs Skills")
     df_engagement, metadata_engagement = load_engagement_data(st.secrets["spreadsheet_engagement"], "ALL Tribes")
     tab1, tab2 = st.tabs(['skills','engagement'])
