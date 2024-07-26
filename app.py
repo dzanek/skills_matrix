@@ -153,8 +153,8 @@ def engagement_view(df, metadata):
 
         write_df.loc['Sum']['Project'] = ''
         write_df.loc['Sum']['Tribe'] = ''
-        write_df = write_df.T
-        st.write(write_df)
+
+        st.dataframe(write_df)
 
 
 def highlight_summary_row(s):
