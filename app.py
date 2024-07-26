@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd 
 import hmac
 import gspread
+import numpy as np
+from datetime import datetime, timedelta
 from google.oauth2.service_account import Credentials
 
 
@@ -39,27 +41,40 @@ def check_password():
         st.error("😕 Password incorrect")
     return False
 
-def load_data(spreadheet):
+def load_data(spreadheet, worksheet):
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
     credentials = Credentials.from_service_account_info(
         st.secrets["gcp_service_account"],
         scopes=scope)
     client = gspread.authorize(credentials)
-    spreadsheet = client.open_by_url(st.secrets["spreadsheet"])
-    worksheet = spreadsheet.get_worksheet(0)  # or use spreadsheet.worksheet("Sheet Name")
+    spreadsheet = client.open_by_url(spreadheet)
+    print(worksheet)
+    worksheet = spreadsheet.worksheet(worksheet)  # or use spreadsheet.worksheet("Sheet Name")
     data = worksheet.get_all_values()
     df = pd.DataFrame([i[1:] for i in data], index=[i[0] for i in data])  # Using the first row as header
+    return df 
+
+def load_skills_data(spreadheet, worksheet):
+    df = load_data(spreadheet, worksheet)
     df.index.values[0] = "Categories"
     df.index.values[1] = "Skills"
     return df 
 
-def main():
-    st.title("Skills Matrix")
-
-    if not check_password():
-        st.stop()
+def load_engagement_data(spreadheet, worksheet):
+    df = load_data(spreadheet, worksheet)
+    metadata = list(df.loc["Name"][:10])
+    df.columns = metadata + list(df.loc["SORT BY COLUMN:"][10:])
+    df = df.iloc[4:]
+    #df.replace('',np.nan, inplace=True) #probably not needed
+    df = df[df.index != '']
     
-    df = load_data(st.secrets["spreadsheet"])
+    #current_year = datetime.now().year
+    #date_format = "%Y-%m-%d"
+    #df.columns = list(df.columns[:11]) + list(pd.to_datetime([f'{current_year}-{i}' for i in df.columns[11:]], format=date_format))
+    
+    return df, metadata
+
+def skills_view(df):
     with st.expander("Raw data"):
         st.write(df)
     with st.form(key='mode'):
@@ -99,6 +114,68 @@ def main():
             short_list = short_list[short_list.columns[2:]]
             short_list = short_list.T.style.map(lambda x: f"background-color: {'#C7F6C7' if str(x) in ['3','4','5'] else '#eded82' if str(x)=='2' else 'white'}")
             st.write(short_list)
+
+def percent_to_float(x):
+    if x == '':
+        return np.nan  # Convert empty strings to NaN
+    else:
+        return float(x.strip('%')) / 100
+
+def engagement_view(df, metadata):
+    with st.expander("Raw data"):
+        st.write(df)
+    with st.form(key='people'):
+        names = list(set(df.index))
+        names.sort()
+        name = st.multiselect('Select people to analyze', names)
+
+
+        #min_date = df.columns[11:].min()
+        #max_date = df.columns[11:].max()
+        #print(min_date)
+        #print(max_date)
+        # Create the slider
+        start_date, end_date = st.select_slider(
+            "Select date range", 
+            options=df.columns[11:],
+            value=[df.columns[11],df.columns[-1]])
+        signed_only = st.checkbox('Include only SIGNED projects', value=True)
+        st.form_submit_button('proceed')
+    
+    for i in name:
+        short_df = df.loc[df.index == i]
+        if signed_only:
+            short_df = short_df.loc[short_df['Status'] =='Signed']
+        filtered_df = short_df.loc[:, start_date:end_date]
+        filtered_df = filtered_df.applymap(percent_to_float)
+        write_df = pd.concat([short_df[['Project','Tribe']], filtered_df], axis=1)
+        write_df.loc['Sum'] = write_df.sum(numeric_only=True)
+        
+        write_df.loc['Sum']['Project'] = ''
+        write_df.loc['Sum']['Tribe'] = ''
+        print(write_df)
+        st.write(write_df)
+
+
+def highlight_summary_row(s):
+    return ['background-color: #ffacac' if i > 1 else '#cbffbd' if i <= 0.5 else '' for i in range(len(s))]
+
+
+def main():
+    st.title("People Dashboard")
+    #if not check_password():
+    #    st.stop()
+    df_skills = load_skills_data(st.secrets["spreadsheet_skills"], "People vs Skills")
+    df_engagement, metadata_engagement = load_engagement_data(st.secrets["spreadsheet_engagement"], "ALL Tribes")
+    tab1, tab2 = st.tabs(['skills','engagement'])
+
+    with tab1:
+        skills_view(df_skills)
+
+    with tab2:
+        engagement_view(df_engagement, metadata_engagement)
+    
+    
 
     
     
