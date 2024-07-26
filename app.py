@@ -1,5 +1,5 @@
 import streamlit as st
-import pandas as pd 
+import pandas as pd
 import hmac
 import gspread
 import numpy as np
@@ -52,13 +52,13 @@ def load_data(spreadheet, worksheet):
     worksheet = spreadsheet.worksheet(worksheet)  # or use spreadsheet.worksheet("Sheet Name")
     data = worksheet.get_all_values()
     df = pd.DataFrame([i[1:] for i in data], index=[i[0] for i in data])  # Using the first row as header
-    return df 
+    return df
 
 def load_skills_data(spreadheet, worksheet):
     df = load_data(spreadheet, worksheet)
     df.index.values[0] = "Categories"
     df.index.values[1] = "Skills"
-    return df 
+    return df
 
 def load_engagement_data(spreadheet, worksheet):
     df = load_data(spreadheet, worksheet)
@@ -67,11 +67,11 @@ def load_engagement_data(spreadheet, worksheet):
     df = df.iloc[4:]
     #df.replace('',np.nan, inplace=True) #probably not needed
     df = df[df.index != '']
-    
+
     #current_year = datetime.now().year
     #date_format = "%Y-%m-%d"
     #df.columns = list(df.columns[:11]) + list(pd.to_datetime([f'{current_year}-{i}' for i in df.columns[11:]], format=date_format))
-    
+
     return df, metadata
 
 def skills_view(df):
@@ -93,17 +93,17 @@ def skills_view(df):
             df_cleaned = df_cleaned.style.map(lambda x: f"background-color: {'#C7F6C7' if str(x) in ['3','4','5'] else '#eded82' if str(x)=='2' else 'white'}")
             st.write(df_cleaned)
 
-    if axis == 'Skill based search': 
+    if axis == 'Skill based search':
         with st.form(key='skills'):
             skills_df = skills_rows[skills_rows.columns[6:]]
-            skills_dict = mk_skills_dict(skills_df.T)        
+            skills_dict = mk_skills_dict(skills_df.T)
             category = st.selectbox('Select Skills Category',skills_dict.keys(), index = None)
             st.form_submit_button('proceed')
-        with st.form(key='skills2'):    
+        with st.form(key='skills2'):
             skill = st.multiselect('Select Skill', skills_dict[category])
             st.form_submit_button('proceed')
 
-        
+
         for s in skill:
             print(s)
             st.write(s)
@@ -136,12 +136,12 @@ def engagement_view(df, metadata):
         #print(max_date)
         # Create the slider
         start_date, end_date = st.select_slider(
-            "Select date range", 
+            "Select date range",
             options=df.columns[11:],
             value=[df.columns[11],df.columns[-1]])
         signed_only = st.checkbox('Include only SIGNED projects', value=True)
         st.form_submit_button('proceed')
-    
+
     for i in name:
         short_df = df.loc[df.index == i]
         if signed_only:
@@ -150,7 +150,7 @@ def engagement_view(df, metadata):
         filtered_df = filtered_df.applymap(percent_to_float)
         write_df = pd.concat([short_df[['Project','Tribe']], filtered_df], axis=1)
         write_df.loc['Sum'] = write_df.sum(numeric_only=True)
-        
+
         write_df.loc['Sum']['Project'] = ''
         write_df.loc['Sum']['Tribe'] = ''
         print(write_df)
@@ -174,10 +174,10 @@ def main():
 
     with tab2:
         engagement_view(df_engagement, metadata_engagement)
-    
-    
 
-    
-    
+
+
+
+
 if __name__ == "__main__":
     main()
